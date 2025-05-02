@@ -409,6 +409,32 @@ fn toggle_buffer_pin_status(
     Ok(())
 }
 
+fn pin_all_buffers(
+    cx: &mut compositor::Context,
+    _args: Args,
+    event: PromptEvent,
+) -> anyhow::Result<()> {
+    if event != PromptEvent::Validate {
+        return Ok(());
+    }
+
+    cx.editor.documents_mut().for_each(|doc| doc.pin());
+    Ok(())
+}
+
+fn unpin_all_buffers(
+    cx: &mut compositor::Context,
+    _args: Args,
+    event: PromptEvent,
+) -> anyhow::Result<()> {
+    if event != PromptEvent::Validate {
+        return Ok(());
+    }
+
+    cx.editor.documents_mut().for_each(|doc| doc.unpin());
+    Ok(())
+}
+
 fn write_impl(cx: &mut compositor::Context, path: Option<&str>, force: bool) -> anyhow::Result<()> {
     let config = cx.editor.config();
     let jobs = &mut cx.jobs;
@@ -2709,9 +2735,31 @@ pub const TYPABLE_COMMAND_LIST: &[TypableCommand] = &[
     },
     TypableCommand {
         name: "buffer-pin-toggle",
-        aliases: &["btogglepin"],
+        aliases: &["pin", "togglepin", "bpin", "btogglepin"],
         doc: "Toggle the pin status of the current buffer.",
         fun: toggle_buffer_pin_status,
+        completer: CommandCompleter::none(),
+        signature: Signature {
+            positionals: (0, Some(0)),
+            ..Signature::DEFAULT
+        },
+    },
+    TypableCommand {
+        name: "buffer-pin-all",
+        aliases: &["pin-all", "pinall", "bpinall"],
+        doc: "Pin all open buffers.",
+        fun: pin_all_buffers,
+        completer: CommandCompleter::none(),
+        signature: Signature {
+            positionals: (0, Some(0)),
+            ..Signature::DEFAULT
+        },
+    },
+    TypableCommand {
+        name: "buffer-unpin-all",
+        aliases: &["unpin-all", "unpinall", "bunpinall"],
+        doc: "Unpin all pinned open buffers.",
+        fun: unpin_all_buffers,
         completer: CommandCompleter::none(),
         signature: Signature {
             positionals: (0, Some(0)),

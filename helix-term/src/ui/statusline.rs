@@ -147,6 +147,7 @@ where
             render_file_modification_indicator
         }
         helix_view::editor::StatusLineElement::ReadOnlyIndicator => render_read_only_indicator,
+        helix_view::editor::StatusLineElement::PinnedIndicator => render_pinned_indicator,
         helix_view::editor::StatusLineElement::FileEncoding => render_file_encoding,
         helix_view::editor::StatusLineElement::FileLineEnding => render_file_line_ending,
         helix_view::editor::StatusLineElement::FileType => render_file_type,
@@ -467,7 +468,7 @@ where
             .as_ref()
             .map(|p| p.to_string_lossy())
             .unwrap_or_else(|| SCRATCH_BUFFER_NAME.into());
-        format!(" {} ", path)
+        format!("{}", path)
     };
 
     write(context, title, None);
@@ -483,7 +484,7 @@ where
             .as_ref()
             .map(|p| p.to_string_lossy())
             .unwrap_or_else(|| SCRATCH_BUFFER_NAME.into());
-        format!(" {} ", path)
+        format!("{}", path)
     };
 
     write(context, title, None);
@@ -513,6 +514,14 @@ where
         ""
     }
     .to_string();
+    write(context, title, None);
+}
+
+fn render_pinned_indicator<F>(context: &mut RenderContext, write: F)
+where
+    F: Fn(&mut RenderContext, String, Option<Style>) + Copy,
+{
+    let title = (if context.doc.is_pinned { "^" } else { "" }).to_string();
     write(context, title, None);
 }
 

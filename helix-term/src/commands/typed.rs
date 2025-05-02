@@ -321,6 +321,24 @@ fn buffer_previous(
     Ok(())
 }
 
+fn toggle_buffer_pin_status(
+    cx: &mut compositor::Context,
+    _args: Args,
+    event: PromptEvent,
+) -> anyhow::Result<()> {
+    if event != PromptEvent::Validate {
+        return Ok(());
+    }
+
+    let current_doc = doc_mut!(cx.editor);
+    if current_doc.is_pinned {
+        current_doc.unpin()
+    } else {
+        current_doc.pin()
+    }
+    Ok(())
+}
+
 fn write_impl(cx: &mut compositor::Context, path: Option<&str>, force: bool) -> anyhow::Result<()> {
     let config = cx.editor.config();
     let jobs = &mut cx.jobs;
@@ -2616,6 +2634,17 @@ pub const TYPABLE_COMMAND_LIST: &[TypableCommand] = &[
         completer: CommandCompleter::all(completers::filename),
         signature: Signature {
             positionals: (1, None),
+            ..Signature::DEFAULT
+        },
+    },
+    TypableCommand {
+        name: "buffer-pin-toggle",
+        aliases: &["btogglepin"],
+        doc: "Toggle the pin status of the current buffer.",
+        fun: toggle_buffer_pin_status,
+        completer: CommandCompleter::none(),
+        signature: Signature {
+            positionals: (0, Some(0)),
             ..Signature::DEFAULT
         },
     },

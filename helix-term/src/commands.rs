@@ -403,6 +403,7 @@ impl MappableCommand {
         file_explorer_in_current_directory, "Open file explorer at current working directory",
         code_action, "Perform code action",
         buffer_picker, "Open buffer picker",
+        pinned_buffer_picker, "Open pinned buffer picker",
         jumplist_picker, "Open jumplist picker",
         symbol_picker, "Open symbol picker",
         changed_file_picker, "Open changed file picker",
@@ -3160,6 +3161,78 @@ fn buffer_picker(cx: &mut Context) {
         .documents
         .values()
         .map(new_meta)
+        .collect::<Vec<BufferMeta>>();
+
+    // mru
+    items.sort_unstable_by_key(|item| std::cmp::Reverse(item.focused_at));
+
+    let columns = [
+        PickerColumn::new("id", |meta: &BufferMeta, _| meta.id.to_string().into()),
+        PickerColumn::new("flags", |meta: &BufferMeta, _| {
+            let mut flags = String::new();
+            if meta.is_modified {
+                flags.push('+');
+            }
+            if meta.is_current {
+                flags.push('*');
+            }
+            if meta.is_pinned {
+                flags.push('^');
+            }
+            flags.into()
+        }),
+        PickerColumn::new("path", |meta: &BufferMeta, _| {
+            let path = meta
+                .path
+                .as_deref()
+                .map(helix_stdx::path::get_relative_path);
+            path.as_deref()
+                .and_then(Path::to_str)
+                .unwrap_or(SCRATCH_BUFFER_NAME)
+                .to_string()
+                .into()
+        }),
+    ];
+    let picker = Picker::new(columns, 2, items, (), |cx, meta, action| {
+        cx.editor.switch(meta.id, action);
+    })
+    .with_preview(|editor, meta| {
+        let doc = &editor.documents.get(&meta.id)?;
+        let lines = doc.selections().values().next().map(|selection| {
+            let cursor_line = selection.primary().cursor_line(doc.text().slice(..));
+            (cursor_line, cursor_line)
+        });
+        Some((meta.id.into(), lines))
+    });
+    cx.push_layer(Box::new(overlaid(picker)));
+}
+
+fn pinned_buffer_picker(cx: &mut Context) {
+    let current = view!(cx.editor).doc;
+
+    struct BufferMeta {
+        id: DocumentId,
+        path: Option<PathBuf>,
+        is_modified: bool,
+        is_current: bool,
+        is_pinned: bool,
+        focused_at: std::time::Instant,
+    }
+
+    let new_meta = |doc: &Document| BufferMeta {
+        id: doc.id(),
+        path: doc.path().cloned(),
+        is_modified: doc.is_modified(),
+        is_current: doc.id() == current,
+        is_pinned: doc.is_pinned,
+        focused_at: doc.focused_at,
+    };
+
+    let mut items = cx
+        .editor
+        .documents
+        .values()
+        .filter_map(|doc| (doc.is_pinned).then(|| new_meta(doc)))
         .collect::<Vec<BufferMeta>>();
 
     // mru

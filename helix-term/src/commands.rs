@@ -3142,6 +3142,7 @@ fn buffer_picker(cx: &mut Context) {
         path: Option<PathBuf>,
         is_modified: bool,
         is_current: bool,
+        is_pinned: bool,
         focused_at: std::time::Instant,
     }
 
@@ -3150,6 +3151,7 @@ fn buffer_picker(cx: &mut Context) {
         path: doc.path().cloned(),
         is_modified: doc.is_modified(),
         is_current: doc.id() == current,
+        is_pinned: doc.is_pinned,
         focused_at: doc.focused_at,
     };
 
@@ -3172,6 +3174,9 @@ fn buffer_picker(cx: &mut Context) {
             }
             if meta.is_current {
                 flags.push('*');
+            }
+            if meta.is_pinned {
+                flags.push('^');
             }
             flags.into()
         }),

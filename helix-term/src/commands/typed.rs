@@ -239,6 +239,17 @@ fn buffer_gather_others_impl(editor: &mut Editor) -> Vec<DocumentId> {
         .collect()
 }
 
+fn buffer_gather_others_unpinned_impl(editor: &mut Editor) -> Vec<DocumentId> {
+    let current_document = &doc!(editor).id();
+    editor
+        .documents()
+        .filter_map(|doc| {
+            let id = doc.id();
+            (!doc.is_pinned && (&id != current_document)).then_some(id)
+        })
+        .collect()
+}
+
 fn buffer_close_others(
     cx: &mut compositor::Context,
     _args: Args,
@@ -265,8 +276,41 @@ fn force_buffer_close_others(
     buffer_close_by_ids_impl(cx, &document_ids, true)
 }
 
+fn buffer_close_others_unpinned(
+    cx: &mut compositor::Context,
+    _args: Args,
+    event: PromptEvent,
+) -> anyhow::Result<()> {
+    if event != PromptEvent::Validate {
+        return Ok(());
+    }
+
+    let document_ids = buffer_gather_others_unpinned_impl(cx.editor);
+    buffer_close_by_ids_impl(cx, &document_ids, false)
+}
+
+fn force_buffer_close_others_unpinned(
+    cx: &mut compositor::Context,
+    _args: Args,
+    event: PromptEvent,
+) -> anyhow::Result<()> {
+    if event != PromptEvent::Validate {
+        return Ok(());
+    }
+
+    let document_ids = buffer_gather_others_unpinned_impl(cx.editor);
+    buffer_close_by_ids_impl(cx, &document_ids, true)
+}
+
 fn buffer_gather_all_impl(editor: &mut Editor) -> Vec<DocumentId> {
     editor.documents().map(|doc| doc.id()).collect()
+}
+
+fn buffer_gather_all_unpinned_impl(editor: &mut Editor) -> Vec<DocumentId> {
+    editor
+        .documents()
+        .filter_map(|doc| (!doc.is_pinned).then_some(doc.id()))
+        .collect()
 }
 
 fn buffer_close_all(
@@ -292,6 +336,32 @@ fn force_buffer_close_all(
     }
 
     let document_ids = buffer_gather_all_impl(cx.editor);
+    buffer_close_by_ids_impl(cx, &document_ids, true)
+}
+
+fn buffer_close_all_unpinned(
+    cx: &mut compositor::Context,
+    _args: Args,
+    event: PromptEvent,
+) -> anyhow::Result<()> {
+    if event != PromptEvent::Validate {
+        return Ok(());
+    }
+
+    let document_ids = buffer_gather_all_unpinned_impl(cx.editor);
+    buffer_close_by_ids_impl(cx, &document_ids, false)
+}
+
+fn force_buffer_close_all_unpinned(
+    cx: &mut compositor::Context,
+    _args: Args,
+    event: PromptEvent,
+) -> anyhow::Result<()> {
+    if event != PromptEvent::Validate {
+        return Ok(());
+    }
+
+    let document_ids = buffer_gather_all_unpinned_impl(cx.editor);
     buffer_close_by_ids_impl(cx, &document_ids, true)
 }
 
@@ -2682,10 +2752,32 @@ pub const TYPABLE_COMMAND_LIST: &[TypableCommand] = &[
         },
     },
     TypableCommand {
+        name: "buffer-close-others-unpinned",
+        aliases: &["bcop", "bcloseothersunpinned"],
+        doc: "Close all unpinned buffers but the currently focused one.",
+        fun: buffer_close_others_unpinned,
+        completer: CommandCompleter::none(),
+        signature: Signature {
+            positionals: (0, Some(0)),
+            ..Signature::DEFAULT
+        },
+    },
+    TypableCommand {
         name: "buffer-close-others!",
         aliases: &["bco!", "bcloseother!"],
         doc: "Force close all buffers but the currently focused one.",
         fun: force_buffer_close_others,
+        completer: CommandCompleter::none(),
+        signature: Signature {
+            positionals: (0, Some(0)),
+            ..Signature::DEFAULT
+        },
+    },
+    TypableCommand {
+        name: "buffer-close-others-unpinned!",
+        aliases: &["bcop!", "bcloseothersunpinned!"],
+        doc: "Force close all unpinned buffers but the currently focused one.",
+        fun: force_buffer_close_others_unpinned,
         completer: CommandCompleter::none(),
         signature: Signature {
             positionals: (0, Some(0)),
@@ -2704,10 +2796,32 @@ pub const TYPABLE_COMMAND_LIST: &[TypableCommand] = &[
         },
     },
     TypableCommand {
+        name: "buffer-close-all-unpinned",
+        aliases: &["bcap", "bcloseallunpinned"],
+        doc: "Close all unpinned buffers",
+        fun: buffer_close_all_unpinned,
+        completer: CommandCompleter::none(),
+        signature: Signature {
+            positionals: (0, Some(0)),
+            ..Signature::DEFAULT
+        },
+    },
+    TypableCommand {
         name: "buffer-close-all!",
         aliases: &["bca!", "bcloseall!"],
         doc: "Force close all buffers ignoring unsaved changes without quitting.",
         fun: force_buffer_close_all,
+        completer: CommandCompleter::none(),
+        signature: Signature {
+            positionals: (0, Some(0)),
+            ..Signature::DEFAULT
+        },
+    },
+    TypableCommand {
+        name: "buffer-close-all-unpinned!",
+        aliases: &["bcap!", "bcloseallunpinned!"],
+        doc: "Force close all unpinned buffers ignoring unsaved changes.",
+        fun: force_buffer_close_all_unpinned,
         completer: CommandCompleter::none(),
         signature: Signature {
             positionals: (0, Some(0)),

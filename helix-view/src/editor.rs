@@ -571,6 +571,9 @@ pub enum StatusLineElement {
     /// An indicator that shows `"[readonly]"` when a file cannot be written
     ReadOnlyIndicator,
 
+    /// An indicator that shows `"^"` when a buffer is pinned
+    PinnedIndicator,
+
     /// The file encoding
     FileEncoding,
 
